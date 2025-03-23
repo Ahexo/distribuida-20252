@@ -11,9 +11,25 @@ parser.add_argument("nodos",
                     default=8,
                     help="Número de nodos que tendrá el sistema distribuido")
 
+
+class nodo:
+    def __init__(self, pid: int):
+        self.pid = pid
+        self.vecinos = set()
+
+    def __repr__(self):
+        return f"<{str(self.pid)}>"
+
+    def go(self, remitente):
+        pass
+
+    def back(self, remitente):
+        pass
+
+
 """
-    Genera una lista de tuplas que abstraen a los vértices de una gráfica
-    simple con un grado en particular.
+    Genera el número de nodos (que son objetos de la clase nodo) que se
+    especifica como argumento y los une en una gŕafica.
 
     En un principio, todos los nodos estarán unidos linealmente en un solo
     camino. Posteriormente, para todo par de vértices en la gráfica, se
@@ -26,23 +42,27 @@ parser.add_argument("nodos",
 
     Returns
     -------
-    list:
-        Una lista de tuplas (aristas) de la gráfica.
-    """
-def generar_grafica(grado: int):
-    vertices = set()
+    dict:
+        Diccionario de la forma {pid: nodo}
+"""
+def construir_grafica(grado: int):
+    # Generamos el número de nodos especificado
+    nodos = {i: nodo(i) for i in range(1, grado + 1)}
+    # Los unimos linealmente
     for i in range(1, grado):
-        vertices.add((i, i + 1))
+        nodos[i].vecinos.add(nodos[i + 1])
+        nodos[i + 1].vecinos.add(nodos[i])
+    # Añadimos aristas con probabilidad del 50% para todo par de nodos.
     for i in range(1, grado + 1):
         for j in range(i + 1, grado + 1):
             if random.random() < 0.5:
-                vertices.add((i, j))
-    return sorted(list(vertices))
+                nodos[i].vecinos.add(nodos[j])
+                nodos[j].vecinos.add(nodos[i])
+    return nodos
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(args.nodos)
-    vertices = generar_grafica(args.nodos)
-    print(vertices)
-    print(len(vertices))
+    grafica = construir_grafica(args.nodos)
+    for nodo in grafica:
+        print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
