@@ -64,5 +64,6 @@ def construir_grafica(grado: int):
 if __name__ == "__main__":
     args = parser.parse_args()
     grafica = construir_grafica(args.nodos)
+    print(f"Se ha generado una red de nodos de grado {args.nodos} con las siguientes adyacencias:")
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
