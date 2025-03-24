@@ -1,5 +1,6 @@
 import argparse
 import random
+import simpy
 
 parser = argparse.ArgumentParser(
                     prog="practica3",
@@ -12,8 +13,8 @@ parser.add_argument("nodos",
                     help="Número de nodos que tendrá el sistema distribuido")
 
 
-class nodo:
-    def __init__(self, pid: int):
+class Nodo:
+    def __init__(self, pid: int, env=None):
         self.pid = pid
         self.vecinos = set()
         self.dfs_children = set()
@@ -26,57 +27,6 @@ class nodo:
     def __repr__(self):
         return f"<{str(self.pid)}>"
 
-    def start_dfs(self):
-        if len(self.vecinos) <= 0:
-            print(f"[RX] El nodo no tiene vecinos, no se puede ejecutar DFS")
-            return
-        print(f"[RX] DFS iniciado en {self}")
-        self.dfs_parent = self
-        print(f"[RX] {self.dfs_parent} es la raíz del árbol y su propio padre.")
-        k = next(iter(self.vecinos))
-        print(f"[RX] {k} ha sido seleccionado como k (destinatario) de {self}")
-        self.dfs_children.add(k)
-        print(f"[RX] {k} ahora es hijo de {self}")
-        visited = set()
-        visited.add(self)
-        print(f"[RX] Mandando GO({visited}, {self}) a {k}")
-        k.go_dfs(visited, self)
-
-    def go_dfs(self, visited: set, remitente):
-        self.dfs_parent = remitente
-        print(f"[RX] {self.dfs_parent} ahora es padre de {self}")
-        print(f"[RX] Vecinos de {self}: {self.vecinos}, Visitados: {visited}")
-        if self.vecinos.issubset(visited):
-            print(f"[RX] El conjunto de vecinos de {self} es subconjunto del de visitados.")
-            visited.add(self)
-            print(f"[RX] Mandando BACK({visited}, {self}) y vaciando el conjunto de hijos.")
-            remitente.back_dfs(visited, self)
-            self.dfs_children = set()
-        else:
-            dif = self.vecinos.difference(visited)
-            print(f"[RX] La diferencia de nodos entre visitados y vecinos de {self} es {dif}")
-            k = next(iter(dif))
-            print(f"[RX] {k} ha sido selecionado como k de {self}")
-            visited.add(self)
-            print(f"[RX] Nodos visitados hasta ahora: {visited}")
-            k.go_dfs(visited, self)
-            self.dfs_children.add(k)
-
-    def back_dfs(self, visited: set, remitente):
-        if self.vecinos.issubset(visited):
-            if self.dfs_parent is self:
-                print(f"[RX] DFS Completado, la raíz es {self}.")
-            else:
-                print(f"[RX] El nodo {self} ha terminado de computar.")
-                self.dfs_parent.back_dfs(visited, self)
-        else:
-            dif = self.vecinos.difference(visited)
-            k = next(iter(dif))
-            if k:
-                visited.add(self)
-                k.go_dfs(visited, self)
-                self.dfs_children.add(k)
-
     def start_bfs(self):
         print(f"[RX BFS] BFS iniciado en {self}")
         self.go_bfs(-1, self)
@@ -88,26 +38,24 @@ class nodo:
         self.expected_msg = len(self.vecinos)
         if remitente in self.vecinos:
             self.expected_msg -= 1
+        print(f"[RX BFS] {self}: Padre: {self.bfs_parent}, Hijos: {self.bfs_children}, Nivel: {self.bfs_level}, ExpMsg: {self.expected_msg}")
 
     def go_bfs(self, distancia: int, remitente):
         if self.bfs_parent is None:
             print(f"[RX BFS] {self} no tiene padre, acepta la oferta de {remitente}")
             self.refresh_bfs(distancia, remitente)
-            print(f"[RX BFS] {self}: Padre: {self.bfs_parent}, Hijos: {self.bfs_children}, Nivel: {self.bfs_level}, ExpMsg: {self.expected_msg}")
             if self.expected_msg == 0:
                 print(f"[RX BFS] {self} no tiene más vecinos a los que mandar mensajes, mandando BACK(Yes, {self.bfs_level}) al padre {self.bfs_parent}")
                 self.bfs_parent.back_bfs(True, distancia + 1, self)
             else:
                 destinatarios = self.vecinos.copy()
-                if remitente in destinatarios:
-                    destinatarios.remove(remitente)
+                destinatarios.discard(remitente)
                 print(f"[RX BFS] {self} está enviando mensajes GO({self.bfs_level}) a sus vecinos: {destinatarios}")
                 for k in destinatarios:
                     k.go_bfs(distancia + 1, self)
         elif self.bfs_level > distancia + 1:
-            print(f"[RX BFS] {self} ha encontrado que si es hijo de {remitente} su nivel mejorará de {self.bfs_level} a {distancia + 1}")
+            print(f"[RX BFS] {self} ha encontrado que si es hijo de {remitente} su nivel mejorará de {self.bfs_level} a {distancia + 1}, así que se va a cambiar.")
             self.refresh_bfs(distancia, remitente)
-            print(f"[RX BFS] {self}: Padre: {self.bfs_parent}, Hijos: {self.bfs_children}, Nivel: {self.bfs_level}, ExpMsg: {self.expected_msg}")
             if self.expected_msg == 0:
                 print(f"[RX BFS] {self} no tiene más vecinos a los que mandar mensajes, mandando BACK(Yes, {self.bfs_level}) al padre {self.bfs_parent}")
                 self.bfs_parent.back_bfs(True, self.bfs_level, self)
@@ -125,7 +73,6 @@ class nodo:
     def back_bfs(self, cambiar_padre: bool, distancia: int, remitente):
         print(f"[RX BFS] {self} recibió un mensaje BACK de {remitente} con estado ({cambiar_padre}, {distancia})")
         print(f"[RX BFS] Distancia recibida de {remitente}: {distancia}. Nivel de {self}: {self.bfs_level}; ")
-        print(f"[RX BFS] {distancia} == {self.bfs_level + 1}?")
         if distancia == self.bfs_level + 1:
             self.expected_msg -= 1
             if cambiar_padre is True:
@@ -164,7 +111,7 @@ class nodo:
 """
 def construir_grafica(grado: int):
     # Generamos el número de nodos especificado
-    nodos = {i: nodo(i) for i in range(1, grado + 1)}
+    nodos = {i: Nodo(i) for i in range(1, grado + 1)}
     # Los unimos linealmente
     for i in range(1, grado):
         nodos[i].vecinos.add(nodos[i + 1])
@@ -184,11 +131,6 @@ def bfs(grafica):
         print(f"Mensajes esperados por {grafica[nodo]}: {grafica[nodo].expected_msg}")
         print(f"Hijos de {grafica[nodo]}: {grafica[nodo].bfs_children}")
 
-def dfs(grafica):
-    grafica[1].start_dfs()
-    for nodo in grafica:
-        print(f"Hijos de {grafica[nodo]}: {grafica[nodo].dfs_children}")
-
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -197,4 +139,5 @@ if __name__ == "__main__":
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
 
+    ambiente = simpy.Environment()
     bfs(grafica)
