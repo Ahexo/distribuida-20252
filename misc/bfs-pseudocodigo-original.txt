@@ -1,0 +1,44 @@
+when START() is received do
+    send GO(-1) to itself
+
+when GO(d) is received from j do
+    if parent_i is none
+        then parent_i = j
+        children_i = {}
+        level_i = d+1
+        expected_msg_i = |neighbors_i \ {j}|
+        if expected_msg_i == 0
+            then send BACK(true, d+1) to parent_i
+            else for each k in neighbors_i \ {j} do
+                send GO(d+1) to k 
+            end for
+        end if
+    else if(level_i > d+1)
+        then parent_i = j
+        children_i = {}
+        level_i = d+1
+        expected_msg_i = |neighbors_i \ {j}|
+        if(expected_msg_i == 0)
+            then send BACK(True, level_i) to parent_i
+            else for each k in neighbors_i \ {j} do
+                send GO(d+1) to k 
+            end for
+        end if
+    else send BACK(False, d+1) to j
+    end if
+end if
+
+when BACK(resp, d) is received from j do
+if (d==level_i+1) do
+    if resp is true then
+        add j to children_i
+    end if
+    expected_msg_i = expected_msg_i - 1
+    if expected_msg_i == 0 then
+        if parent_i is not i then
+            send BACK(true, level_i) to parent_i
+        else 
+            finish
+        end if
+    end if
+end if

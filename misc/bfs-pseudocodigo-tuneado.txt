@@ -1,0 +1,46 @@
+when START() is received do
+    send GO(-1) to itself
+
+when GO(d) is received from j do
+    if parent_i is none
+        then parent_i = j
+        children_i = {}
+        level_i = d+1
+        expected_msg_i = |neighbors_i \ {j}|
+        received_back_i = 0  // Track responses received
+        if expected_msg_i == 0
+            then send BACK(false, d+1) to parent_i  // Send false if no children
+            else for each k in neighbors_i \ {j} do
+                send GO(d+1) to k 
+            end for
+        end if
+    else if(level_i > d+1)  // Only update if level is strictly lower
+        then parent_i = j
+        children_i = {}
+        level_i = d+1
+        expected_msg_i = |neighbors_i \ {j}|
+        received_back_i = 0
+        if expected_msg_i == 0
+            then send BACK(false, level_i) to parent_i
+            else for each k in neighbors_i \ {j} do
+                send GO(d+1) to k 
+            end for
+        end if
+    else send BACK(false, d+1) to j  // Return false if we already have a parent
+    end if
+end if
+
+when BACK(resp, d) is received from j do
+if (d == level_i+1) do
+    received_back_i = received_back_i + 1  // Track responses
+    if resp is true then
+        add j to children_i
+    end if
+    if received_back_i == expected_msg_i then
+        if parent_i is not i then
+            send BACK(children_i is not empty, level_i) to parent_i  // Send true if we have children
+        else 
+            finish
+        end if
+    end if
+end if
