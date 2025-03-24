@@ -16,15 +16,62 @@ class nodo:
     def __init__(self, pid: int):
         self.pid = pid
         self.vecinos = set()
+        self.dfs_children = set()
+        self.dfs_parent = None
 
     def __repr__(self):
         return f"<{str(self.pid)}>"
 
-    def go(self, remitente):
-        pass
+    def start_dfs(self):
+        if len(self.vecinos) <= 0:
+            print(f"[RX] El nodo no tiene vecinos, no se puede ejecutar DFS")
+            return
+        print(f"[RX] DFS iniciado en {self}")
+        self.dfs_parent = self
+        print(f"[RX] {self.dfs_parent} es la raíz del árbol y su propio padre.")
+        k = next(iter(self.vecinos))
+        print(f"[RX] {k} ha sido selecionado como k de {self}")
+        self.dfs_children.add(k)
+        print(f"[RX] {k} ahora es hijo de {self}")
+        visited = set()
+        visited.add(self)
+        print(f"[RX] Mandando GO({visited}, {self}) a {k}")
+        k.go_dfs(visited, self)
 
-    def back(self, remitente):
-        pass
+    def go_dfs(self, visited: set, remitente):
+        self.dfs_parent = remitente
+        print(f"[RX] {self.dfs_parent} ahora es padre de {self}")
+        print(f"[RX] Vecinos de {self}: {self.vecinos}, Visitados: {visited}")
+        if self.vecinos.issubset(visited):
+            print(f"[RX] El conjunto de vecinos de {self} es subconjunto del de visitados.")
+            visited.add(self)
+            print(f"[RX] Mandando BACK({visited}, {self}) y vaciando el conjunto de hijos.")
+            remitente.back_dfs(visited, self)
+            self.dfs_children = set()
+        else:
+            dif = self.vecinos.difference(visited)
+            print(f"[RX] La diferencia de nodos entre visitados y vecinos de {self} es {dif}")
+            k = next(iter(dif))
+            print(f"[RX] {k} ha sido selecionado como k de {self}")
+            visited.add(self)
+            print(f"[RX] Nodos visitados hasta ahora: {visited}")
+            k.go_dfs(visited, self)
+            self.dfs_children.add(k)
+
+    def back_dfs(self, visited: set, remitente):
+        if self.vecinos.issubset(visited):
+            if self.dfs_parent is self:
+                print(f"[RX] DFS Completado en {self}.")
+            else:
+                print(f"[RX] El nodo {self} ha terminado de computar.")
+                self.dfs_parent.back_dfs(visited, self)
+        else:
+            dif = self.vecinos.difference(visited)
+            k = next(iter(dif))
+            if k:
+                visited.add(self)
+                k.go_dfs(visited, self)
+                self.dfs_children.add(k)
 
 
 """
@@ -67,3 +114,7 @@ if __name__ == "__main__":
     print(f"Se ha generado una red de nodos de grado {args.nodos} con las siguientes adyacencias:")
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
+
+    grafica[1].start_dfs()
+    for nodo in grafica:
+        print(f"Hijos de {grafica[nodo]}: {grafica[nodo].dfs_children}")
