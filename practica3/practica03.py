@@ -1,6 +1,7 @@
 import simpy
 import argparse
 import random
+from collections import deque
 
 parser = argparse.ArgumentParser(
     prog="practica3",
@@ -19,20 +20,68 @@ parser.add_argument(
 class Nodo:
     def __init__(self, pid: int, env):
         self.pid = pid
-        self.vecinos = set()
         self.env = env
+        self.vecinos = set()
         self.action = env.process(self.iterar())
-        self.dummy = 0
+        self.continuar = True
+        self.cola_mensajes = deque()
 
     def __repr__(self):
         return f"<{str(self.pid)}>"
 
+    """
+    1. Leer los mensajes que hayan llegado en la ronda pasada, solo uno
+    por vecino.
+    2. Hacer un número abitrario de operaciones computacionales hasta
+    procesar todos los datos recibidos en los mensajes del paso anterior.
+    3. Enviar mensajes si así se ha resuelto en el paso anterior, solo
+    uno por vecino.
+    """
     def iterar(self):
-        self.dummy += 1
-        print(f"{self} está iterando en {self.dummy}")
-        yield self.env.timeout(1)
-        self.iterar()
+        while self.continuar:
+            print(f"[Ronda {self.env.now}] {self} está iterando.")
 
+            # Leer los mensajes (uno por cada vecino)
+            mensajes_por_vecino = {}
+            while self.cola_mensajes:
+                metodo, args, remitente, tiempo = self.cola_mensajes.popleft()
+                if remitente not in mensajes_por_vecino:
+                    mensajes_por_vecino[remitente] = (metodo, args, tiempo)
+
+            # Procesar los mensajes recibidos
+            for remitente, (metodo, args, tiempo) in mensajes_por_vecino.items():
+                self.procesar_mensaje(metodo, args, remitente, tiempo)
+
+            yield self.env.timeout(1)  # Esperar a la siguiente ronda
+
+    """
+    Agrega un mensaje a la cola de mensajes del nodo.
+    """
+    def msg(self, metodo: str, args, remitente):
+        mensaje = (metodo, args, remitente, self.env.now)
+        self.cola_mensajes.append(mensaje)
+
+    """
+    Procesa un mensaje llamando al método correspondiente si existe.
+    """
+    def procesar_mensaje(self, metodo, args, remitente, tiempo):
+        if hasattr(self, metodo):  # Verifica si el nodo tiene el método
+            metodo_a_llamar = getattr(self, metodo)
+            if isinstance(args, dict):  # Si los argumentos son un diccionario, usar **args
+                args['remitente'] = remitente
+                metodo_a_llamar(**args)
+            elif isinstance(args, tuple):  # Si son una tupla, pasarlos como argumentos
+                metodo_a_llamar(*args, remitente)
+            else:  # Si es un único argumento, pasarlo tal cual
+                metodo_a_llamar(args)
+        else:
+            print(f"{self} recibió un mensaje para {metodo}, pero no existe tal método.")
+
+
+    def ejemplo(self, dato, remitente):
+        print(f"[Ronda {self.env.now}] {self} ejecuta 'ejemplo' desde {remitente} con dato={dato}")
+        destinatario = random.choice(list(self.vecinos))
+        destinatario.msg("ejemplo", (random.randint(0, 1000),), self)
 
 """
     Genera el número de nodos (que son objetos de la clase nodo) que se
@@ -52,8 +101,6 @@ class Nodo:
     dict:
         Diccionario de la forma {pid: nodo}
 """
-
-
 def construir_grafica(grado: int, env):
     # Generamos el número de nodos especificado
     nodos = {i: Nodo(i, env) for i in range(1, grado + 1)}
@@ -74,9 +121,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     env = simpy.Environment()
     grafica = construir_grafica(args.nodos, env)
-    print(
-        f"Se ha generado una red de nodos de grado {args.nodos} con las siguientes adyacencias:"
-    )
+    print(f"Se ha generado una red de nodos de grado {args.nodos} con las siguientes adyacencias:")
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
-    env.run()
+
+    grafica[2].msg("ejemplo", (39,), grafica[1])
+    env.run(until=10)
