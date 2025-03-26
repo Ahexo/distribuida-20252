@@ -19,7 +19,7 @@ class DFS:
             f"[Ronda {self.env.now}] {k} ha sido seleccionado como k (destinatario) de {self}"
         )
         self.dfs_children.add(k)
-        print(f"[Ronda {self.env.now}] {k} ahora es hijo de {self}")
+        print(f"[Ronda {self.env.now}] {self} ha añadido a {k} a su lista de hijos.")
         visited = set()
         visited.add(self)
         print(f"[Ronda {self.env.now}] Mandando GO({visited}, {self}) a {k}")
@@ -27,7 +27,9 @@ class DFS:
 
     def go_dfs(self, visited: set, remitente):
         self.dfs_parent = remitente
-        print(f"[Ronda {self.env.now}] {self.dfs_parent} ahora es padre de {self}")
+        print(
+            f"[Ronda {self.env.now}] {self} ahora reconoce a {self.dfs_parent} como su padre."
+        )
         print(
             f"[Ronda {self.env.now}] Vecinos de {self}: {self.vecinos}, Visitados: {visited}"
         )
@@ -39,8 +41,10 @@ class DFS:
             print(
                 f"[Ronda {self.env.now}] Mandando BACK({visited}, {self}) y vaciando el conjunto de hijos."
             )
+            print(f"[Ronda {self.env.now}] {self} ha terminado de computar.")
             remitente.msg("back_dfs", (visited,), self)
             self.dfs_children = set()
+            self.continuar = False
         else:
             dif = self.vecinos.difference(visited)
             print(

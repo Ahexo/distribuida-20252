@@ -151,5 +151,9 @@ if __name__ == "__main__":
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
 
-    grafica[2].start_dfs()
-    env.run(until=10)
+    grafica[1].start_dfs()
+    env.run()
+
+    print("DFS completado:")
+    for nodo in grafica:
+        print(f"{grafica[nodo]}: {grafica[nodo].dfs_children}")
