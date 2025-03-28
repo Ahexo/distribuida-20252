@@ -3,6 +3,7 @@ import argparse
 import random
 from collections import deque
 from DFS import DFS
+from distanciaMaxima import DistanciaMaxima
 
 parser = argparse.ArgumentParser(
     prog="practica3",
@@ -18,7 +19,7 @@ parser.add_argument(
 )
 
 
-class Nodo(DFS):
+class Nodo(DFS, DistanciaMaxima):
     def __init__(self, pid: int, env):
         self.pid = pid
         self.env = env
@@ -27,6 +28,7 @@ class Nodo(DFS):
         self.continuar = True
         self.cola_mensajes = deque()
         DFS.__init__(self)
+        DistanciaMaxima.__init__(self)
 
     def __repr__(self):
         return f"<{self.pid}>"
@@ -151,9 +153,11 @@ if __name__ == "__main__":
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
 
-    grafica[1].start_dfs()
-    env.run()
+    grafica[1].start_distancia_maxima()
+    env.run(until=10)
 
+    """
     print("DFS completado:")
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].dfs_children}")
+    """
