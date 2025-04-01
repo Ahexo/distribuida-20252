@@ -5,55 +5,39 @@ class DFS:
 
     def start_dfs(self):
         if len(self.vecinos) <= 0:
-            print(
-                f"[Ronda {self.env.now}] El nodo no tiene vecinos, no se puede ejecutar DFS"
-            )
+            self.log(f"El nodo no tiene vecinos, no se puede ejecutar DFS")
             return
-        print(f"[Ronda {self.env.now}] DFS iniciado en {self}")
+        self.log(f"DFS iniciado en {self}")
         self.dfs_parent = self
-        print(
-            f"[Ronda {self.env.now}] {self.dfs_parent} es la raíz del árbol y su propio padre."
-        )
+        self.log(f"{self.dfs_parent} es la raíz del árbol y su propio padre.")
         k = next(iter(self.vecinos))
-        print(
-            f"[Ronda {self.env.now}] {k} ha sido seleccionado como k (destinatario) de {self}"
-        )
+        self.log(f"{k} ha sido seleccionado como k (destinatario) de {self}")
         self.dfs_children.add(k)
-        print(f"[Ronda {self.env.now}] {self} ha añadido a {k} a su lista de hijos.")
+        self.log(f"{self} ha añadido a {k} a su lista de hijos.")
         visited = set()
         visited.add(self)
-        print(f"[Ronda {self.env.now}] Mandando GO({visited}, {self}) a {k}")
+        self.log(f"Mandando GO({visited}, {self}) a {k}")
         k.msg("go_dfs", (visited,), self)
 
     def go_dfs(self, visited: set, remitente):
         self.dfs_parent = remitente
-        print(
-            f"[Ronda {self.env.now}] {self} ahora reconoce a {self.dfs_parent} como su padre."
-        )
-        print(
-            f"[Ronda {self.env.now}] Vecinos de {self}: {self.vecinos}, Visitados: {visited}"
-        )
+        self.log(f"{self} ahora reconoce a {self.dfs_parent} como su padre.")
+        self.log(f"Vecinos de {self}: {self.vecinos}, Visitados: {visited}")
         if self.vecinos.issubset(visited):
-            print(
-                f"[Ronda {self.env.now}] El conjunto de vecinos de {self} es subconjunto del de visitados."
-            )
+            self.log(f"El conjunto de vecinos de {self} es subconjunto del de visitados.")
             visited.add(self)
-            print(
-                f"[Ronda {self.env.now}] Mandando BACK({visited}, {self}) y vaciando el conjunto de hijos."
-            )
-            print(f"[Ronda {self.env.now}] {self} ha terminado de computar.")
+            self.log(f"Mandando BACK({visited}, {self}) y vaciando el conjunto de hijos.")
+            self.log(f"{self} ha terminado de computar.")
             remitente.msg("back_dfs", (visited,), self)
             self.dfs_children = set()
             self.continuar = False
         else:
             dif = self.vecinos.difference(visited)
-            print(
-                f"[Ronda {self.env.now}] La diferencia de nodos entre visitados y vecinos de {self} es {dif}"
-            )
+            self.log(f"La diferencia de nodos entre visitados y vecinos de {self} es {dif}")
             k = next(iter(dif))
-            print(f"[Ronda {self.env.now}] {k} ha sido selecionado como k de {self}")
+            self.log(f"{k} ha sido selecionado como k de {self}")
             visited.add(self)
-            print(f"[Ronda {self.env.now}] Nodos visitados hasta ahora: {visited}")
+            self.log(f"Nodos visitados hasta ahora: {visited}")
             k.msg("go_dfs", (visited,), self)
             self.dfs_children.add(k)
 
@@ -61,11 +45,9 @@ class DFS:
         if self.vecinos.issubset(visited):
             self.continuar = False
             if self.dfs_parent is self:
-                print(f"[Ronda {self.env.now}] DFS Completado, la raíz es {self}.")
+                self.log(f"DFS Completado, la raíz es {self}.")
             else:
-                print(
-                    f"[Ronda {self.env.now}] El nodo {self} ha terminado de computar."
-                )
+                self.log(f"El nodo {self} ha terminado de computar.")
                 self.dfs_parent.msg("back_dfs", (visited,), self)
         else:
             dif = self.vecinos.difference(visited)

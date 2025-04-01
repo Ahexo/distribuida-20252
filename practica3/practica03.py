@@ -5,19 +5,22 @@ from collections import deque
 from DFS import DFS
 from distanciaMaxima import DistanciaMaxima
 
+'''
+Utilizaremos la biblioteca nativa `argparse` para recibir argumentos
+de entrada: Número de nodos, listas de vértices, etc.
+'''
 parser = argparse.ArgumentParser(
     prog="practica3",
-    description="Un programa para simular la red de un sistema distribuido y hallar el diámetro de su gráfica subyacente.",
+    description="Un programa para simular un sistema de procesos distribuido y hallar el diámetro de su gráfica subyacente.",
     epilog="Implementado por Axel Rodríguez y José David Aguilar para el curso de Computación Distribuida 7106 2025-2.",
 )
 
 parser.add_argument(
-    "nodos",
+    "procesos",
     type=int,
     default=8,
-    help="Número de nodos que tendrá el sistema distribuido",
+    help="Número de procesos que tendrá el sistema distribuido.",
 )
-
 
 class Nodo(DFS, DistanciaMaxima):
     def __init__(self, pid: int, env):
@@ -146,9 +149,9 @@ def construir_grafica(grado: int, env):
 if __name__ == "__main__":
     args = parser.parse_args()
     env = simpy.Environment()
-    grafica = construir_grafica(args.nodos, env)
+    grafica = construir_grafica(args.procesos, env)
     print(
-        f"Se ha generado una red de nodos de grado {args.nodos} con las siguientes adyacencias:"
+        f"Se ha generado una red de procesos de grado {args.procesos} con las siguientes adyacencias:"
     )
     for nodo in grafica:
         print(f"{grafica[nodo]}: {grafica[nodo].vecinos}")
