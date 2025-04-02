@@ -22,6 +22,8 @@ from proceso import Proceso
         contenido de cada una el objeto Proceso con el
         id de ese entero.
 """
+
+
 def generar_grafica_aleatoria(grado: int, env) -> dict:
     # Generamos el número de procesos especificado
     procesos = {i: Proceso(i, env) for i in range(1, grado + 1)}
@@ -56,6 +58,8 @@ def generar_grafica_aleatoria(grado: int, env) -> dict:
         contenido de cada una el objeto Proceso con el
         id de ese entero.
 """
+
+
 def generar_grafica_personalizada(aristas: list, env) -> dict:
     procesos = dict()
     for arista in aristas:
@@ -71,19 +75,18 @@ def generar_grafica_personalizada(aristas: list, env) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="comdist",
-        description="A program to generate graphs."
+        prog="comdist", description="A program to generate graphs."
     )
     parser.add_argument(
         "procesos",
         type=str,
-        help="Número de procesos a generar o lista de adyacencias de la forma '(u,v), (u,w), ...'"
+        help="Número de procesos a generar o lista de adyacencias de la forma '(u,v), (u,w), ...'",
     )
     parser.add_argument(
         "-l",
         "--lider",
-        nargs='?',
-        help="Proceso lider por el cual se va a iniciar el programa."
+        nargs="?",
+        help="Proceso lider por el cual se va a iniciar el programa.",
     )
 
     args = parser.parse_args()
@@ -106,10 +109,13 @@ def main():
         print(f"{grafica[i]}: {grafica[i].vecinos}")
 
     # Probar
-    lider = grafica[7]
+    lider = grafica[1]
     lider.start_diametro()
-    #lider.msg("start_diametro", None, lider)
-    env.run(until=10)
+    # lider.msg("start_diametro", None, lider)
+    env.run(until=9)
+
+    # when env.now >= n*2
+    # lider.recolectar_maximos()
 
 
 if __name__ == "__main__":

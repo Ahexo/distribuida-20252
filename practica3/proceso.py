@@ -53,6 +53,7 @@ class Proceso(Diametro):
     3. Enviar mensajes si así se ha resuelto en el paso anterior, solo
     uno por vecino.
     """
+
     def iterar(self):
         while self.continuar:
             self.log("Iterando...")
@@ -77,6 +78,7 @@ class Proceso(Diametro):
     Agrega un mensaje a la cola de mensajes del proceso.
     Los mensajes se deberán de mandar en una tupla o un diccionario.
     """
+
     def msg(self, metodo: str, args, remitente):
         if remitente in self.vecinos | {self}:
             mensaje = (metodo, args, remitente, self.env.now)
@@ -87,6 +89,7 @@ class Proceso(Diametro):
     """
     Procesa un mensaje llamando al método correspondiente si existe.
     """
+
     def procesar_mensaje(self, metodo, args, remitente, tiempo):
         if hasattr(self, metodo):  # Verifica si el proceso tiene el método
             metodo_a_llamar = getattr(self, metodo)
@@ -104,7 +107,9 @@ class Proceso(Diametro):
                 # Si es un único argumento, pasarlo tal cual
                 metodo_a_llamar(args)
         else:
-            self.log(f"Recibiendo un mensaje para ejecutar {metodo}, pero no existe tal método.")
+            self.log(
+                f"Recibiendo un mensaje para ejecutar {metodo}, pero no existe tal método."
+            )
 
     """
     Imprime un mensaje en pantalla con el prefijo de la ronda actual.
@@ -114,6 +119,7 @@ class Proceso(Diametro):
     texto:
         Texto a imprimir en pantalla.
     """
+
     def log(self, texto):
         print(f"[Ronda {self.env.now} {self}] {texto}")
 
@@ -127,6 +133,7 @@ class Proceso(Diametro):
     remitente:
         Proceso que manda el mensaje.
     """
+
     def echo(self, dato, remitente):
         self.log(f"{remitente} dice: {dato}")
         destinatario = random.choice(list(self.vecinos))
