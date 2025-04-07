@@ -2,6 +2,7 @@ import argparse
 import ast
 import random
 import simpy
+import math
 from proceso import Proceso
 
 """
@@ -94,28 +95,34 @@ def main():
         print(f"Lider indicado: {args.lider} ({type(args.lider)})")
     env = simpy.Environment()
     grafica = dict()
+    grado = 0
     try:
         # Intentamos interpretar la entrada como una lista de aristas
         aristas = ast.literal_eval(f"[{args.procesos}]")
         grafica = generar_grafica_personalizada(aristas, env)
+        grado = len(grafica)
     except (SyntaxError, ValueError, TypeError):
         # Si algo falla, intentamos interpretando la entrada como un entero
-        num_vertices = int(args.procesos)
-        grafica = generar_grafica_aleatoria(num_vertices, env)
+        grado = int(args.procesos)
+        grafica = generar_grafica_aleatoria(grado, env)
 
     # Imprimir la red/gráfica
     print(f"Se ha generado la siguiente red con {len(grafica)} proceso(s):")
-    for i in grafica:
-        print(f"{grafica[i]}: {grafica[i].vecinos}")
+    for p in grafica:
+        print(f"{grafica[p]}: {grafica[p].vecinos}")
+    rondas_esperadas = math.ceil(grado * math.log(grado)) + 1
+    print(f"Rondas esperadas: {rondas_esperadas}")
 
-    # Probar
-    lider = grafica[1]
-    lider.start_diametro()
-    # lider.msg("start_diametro", None, lider)
-    env.run(until=9)
-
-    # when env.now >= n*2
-    # lider.recolectar_maximos()
+    # Inicializamos a todos los procesos de la red
+    for p in grafica:
+        grafica[p].start_distancias()
+    # Iniciamos la simulación hasta las rondas esperadas en el peor caso.
+    env.run(until=rondas_esperadas)
+    # Una vez computadas las rondas esperadas, iniciamos el algoritmos DFS para recolectar candidatos al diámetro.
+    print("\nIniciando fase de recolección de candidatos a diámetro")
+    grafica[1].start_recolectar()
+    # Reanudamos la simulación, no hace falta limitar las rondas porque DFS si reporta terminación.
+    env.run()
 
 
 if __name__ == "__main__":

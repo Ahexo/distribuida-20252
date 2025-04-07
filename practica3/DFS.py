@@ -16,7 +16,7 @@ class DFS:
         self.log(f"{self} ha añadido a {k} a su lista de hijos.")
         visited = set()
         visited.add(self)
-        self.log(f"Mandando GO({visited}, {self}) a {k}")
+        self.log(f"Mandando go_dfs({visited}, {self}) a {k}")
         k.msg("go_dfs", (visited,), self)
 
     def go_dfs(self, visited: set, remitente):

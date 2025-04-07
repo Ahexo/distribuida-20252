@@ -15,7 +15,7 @@ class Proceso(Diametro):
         Diametro.__init__(self)
 
     def __repr__(self):
-        return f"\033[1;30m<{self.pid}>\033[0m"
+        return f"<{self.pid}>"
 
     def __hash__(self):
         return hash(self.pid)
@@ -56,8 +56,6 @@ class Proceso(Diametro):
 
     def iterar(self):
         while self.continuar:
-            self.log("Iterando...")
-
             # Leer los mensajes (uno por cada vecino)
             mensajes_por_vecino = {}
             for i in range(0, len(self.cola_mensajes)):
@@ -77,6 +75,15 @@ class Proceso(Diametro):
     """
     Agrega un mensaje a la cola de mensajes del proceso.
     Los mensajes se deberán de mandar en una tupla o un diccionario.
+
+    Parameters
+    ----------
+    metodo:
+        Nombre de la función/método que se desea invocar.
+    args:
+        Tupla/diccionario de argumentos.
+    remitente:
+        Proceso que envia el mensaje.
     """
 
     def msg(self, metodo: str, args, remitente):
@@ -122,21 +129,3 @@ class Proceso(Diametro):
 
     def log(self, texto):
         print(f"[Ronda {self.env.now} {self}] {texto}")
-
-    """
-    Recibir un mensaje e imprimirlo.
-
-    Parameters
-    ----------
-    dato:
-        Mensaje.
-    remitente:
-        Proceso que manda el mensaje.
-    """
-
-    def echo(self, dato, remitente):
-        self.log(f"{remitente} dice: {dato}")
-        destinatario = random.choice(list(self.vecinos))
-        numero_misterioso = random.randint(0, 1000)
-        self.log(f"Enviando (echo, {numero_misterioso}) a {destinatario}")
-        destinatario.msg("echo", (numero_misterioso,), self)
