@@ -3,10 +3,9 @@ class Diametro:
         # Trivialmente, cada proceso tiene distancia 0 a si mismo y 1 a sus vecinos
         self.vecinos_inmediatos = {self: 0}
         # Cada proceso recuerda cual lejos está cada proceso de la red
-        self.lista_de_rutas = {self: 0}
+        self.distancias = {self: 0}
         # Una especie de libro de visitas para recordar la primera mención de cada proceso en uno en particular.
         self.referidos = {self: self}
-
         self.dfs_hijos = set()
         self.dfs_padre = None
         self.candidato_a_diametro = (0, self, self)
@@ -57,9 +56,9 @@ class Diametro:
         if self is origen:
             self.log(f"Se ha recibido una lista de rutas nueva: {conocidos}")
             for key, value in conocidos.items():
-                if key not in self.lista_de_rutas or value < self.lista_de_rutas[key]:
-                    self.lista_de_rutas[key] = value
-            self.log(f"Lista de rutas local actualizada: {self.lista_de_rutas}")
+                if key not in self.distancias or value < self.distancias[key]:
+                    self.distancias[key] = value
+            self.log(f"Lista de rutas local actualizada: {self.distancias}")
         else:
             self.log(f"Pasando back_consultar_distancias() desde {remitente} con destino a {origen}")
             self.referidos[origen].msg(
@@ -69,10 +68,10 @@ class Diametro:
     def calcular_candidato_a_diametro(self):
         distancia_candidata = 0
         candidato = self
-        for destino in self.lista_de_rutas.keys():
-            if self.lista_de_rutas[destino] > distancia_candidata:
+        for destino in self.distancias.keys():
+            if self.distancias[destino] > distancia_candidata:
                 candidato = destino
-                distancia_candidata = self.lista_de_rutas[destino]
+                distancia_candidata = self.distancias[destino]
         return (distancia_candidata, self, candidato)
 
     def start_recolectar(self):
@@ -138,7 +137,7 @@ class Diametro:
                     elif distancia == diametro:
                         ganadores.append((desde, hasta))
                 self.log(f"El diámetro de la gráfica es {diametro}.")
-                self.log(f"La(s) distancia(s) entre {ganadores} corresponden al diámetro.")
+                self.log(f"La(s) distancia(s) entre {ganadores} corresponden al diámetro (podrían no ser las únicas).")
             # El proceso no es raíz, seguir haciendo back
             else:
                 self.dfs_padre.msg("back_recolectar", (visited, lista_de_diametros), self)

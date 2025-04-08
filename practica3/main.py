@@ -74,7 +74,7 @@ def generar_grafica_personalizada(aristas: list, env) -> dict:
     return procesos
 
 
-def main():
+def ejecutar():
     parser = argparse.ArgumentParser(
         prog="comdist", description="A program to generate graphs."
     )
@@ -83,16 +83,8 @@ def main():
         type=str,
         help="Número de procesos a generar o lista de adyacencias de la forma '(u,v), (u,w), ...'",
     )
-    parser.add_argument(
-        "-l",
-        "--lider",
-        nargs="?",
-        help="Proceso lider por el cual se va a iniciar el programa.",
-    )
 
     args = parser.parse_args()
-    if args.lider:
-        print(f"Lider indicado: {args.lider} ({type(args.lider)})")
     env = simpy.Environment()
     grafica = dict()
     grado = 0
@@ -111,19 +103,19 @@ def main():
     for p in grafica:
         print(f"{grafica[p]}: {grafica[p].vecinos}")
     rondas_esperadas = math.ceil(grado * math.log(grado)) + 1
-    print(f"Rondas esperadas: {rondas_esperadas}")
-
     # Inicializamos a todos los procesos de la red
     for p in grafica:
         grafica[p].start_distancias()
     # Iniciamos la simulación hasta las rondas esperadas en el peor caso.
+    print(f"Iniciando el algoritmo de cálculo de distancias para todos los vértices...")
+    print(f"Rondas esperadas: {rondas_esperadas}")
     env.run(until=rondas_esperadas)
     # Una vez computadas las rondas esperadas, iniciamos el algoritmos DFS para recolectar candidatos al diámetro.
-    print("\nIniciando fase de recolección de candidatos a diámetro")
+    print("Iniciando fase de recolección de candidatos a diámetro...")
     grafica[1].start_recolectar()
     # Reanudamos la simulación, no hace falta limitar las rondas porque DFS si reporta terminación.
     env.run()
 
 
 if __name__ == "__main__":
-    main()
+    ejecutar()

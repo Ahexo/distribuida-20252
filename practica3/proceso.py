@@ -9,9 +9,9 @@ class Proceso(Diametro):
         self.pid = pid
         self.env = env
         self.vecinos = set()
-        self.action = env.process(self.iterar())
         self.continuar = True
         self.cola_mensajes = deque()
+        env.process(self.iterar())
         Diametro.__init__(self)
 
     def __repr__(self):
@@ -90,8 +90,10 @@ class Proceso(Diametro):
         if remitente in self.vecinos | {self}:
             mensaje = (metodo, args, remitente, self.env.now)
             self.cola_mensajes.append(mensaje)
+            return True
         else:
             self.log(f"{remitente} ha intentado mandar un mensaje, pero no es vecino.")
+            return False
 
     """
     Procesa un mensaje llamando al método correspondiente si existe.
