@@ -4,15 +4,15 @@ from collections import deque
 from lider import Lider
 
 
-class Proceso(Lider):
+class Proceso:
     def __init__(self, pid: int, env: simpy.core.Environment):
         self.pid = pid
         self.env = env
-        self.vecinos = set()
+        self.vecino_izquierdo = None
+        self.vecino_derecho = None
         self.continuar = True
         self.cola_mensajes = deque()
         env.process(self.iterar())
-        Lider.__init__(self)
 
     def __repr__(self):
         return f"<{self.pid}>"
@@ -87,7 +87,7 @@ class Proceso(Lider):
     """
 
     def msg(self, metodo: str, args, remitente):
-        if remitente in self.vecinos | {self}:
+        if remitente is self.vecino_izquierdo or remitente is self.vecino_derecho:
             mensaje = (metodo, args, remitente, self.env.now)
             self.cola_mensajes.append(mensaje)
             return True

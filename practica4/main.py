@@ -1,48 +1,46 @@
 import argparse
-import ast
-import random
 import simpy
-import math
 from proceso import Proceso
 
 
 class Main:
     """
-        Genera un número de procesos arbitrario y los conecta
-        de modo pseudoaleatorio en una red/gráfica.
+    Genera un número de procesos arbitrario y los conecta
+    de modo pseudoaleatorio en una red/gráfica.
 
-        Parameters
-        ----------
-        grado:
-            Número de procesos a generar
-        env:
-            Entorno de SimPy al cual registrar cada proceso.
+    Parameters
+    ----------
+    grado:
+        Número de procesos a generar
+    env:
+        Entorno de SimPy al cual registrar cada proceso.
 
-        Returns
-        -------
-        dict:
-            Un diccionario donde las llaves son enteros y el
-            contenido de cada una el objeto Proceso con el
-            id de ese entero.
+    Returns
+    -------
+    dict:
+        Un diccionario donde las llaves son enteros y el
+        contenido de cada una el objeto Proceso con el
+        id de ese entero.
     """
+
     @staticmethod
     def generar_grafica(grado: int, env) -> dict:
         # Generamos el número de procesos especificado
         procesos = {i: Proceso(i, env) for i in range(1, grado + 1)}
         # Los unimos linealmente en un camino
-        for i in range(1, grado):
-            procesos[i].vecinos.add(procesos[i + 1])
-            procesos[i + 1].vecinos.add(procesos[i])
+        for i in range(2, grado):
+            procesos[i].vecino_izquierdo = procesos[i - 1]
+            procesos[i].vecino_derecho = procesos[i + 1]
         # Unimos los extremos del camino para hacer un anillo.
-        procesos[grado].vecinos.add(procesos[1])
-        procesos[1].vecinos.add(procesos[grado])
+        procesos[grado].vecino_izquierdo = procesos[grado - 1]
+        procesos[grado].vecino_derecho = procesos[1]
+        procesos[1].vecino_izquierdo = procesos[grado]
+        procesos[1].vecino_derecho = procesos[2]
         return procesos
 
     @staticmethod
     def ejecutar():
-        parser = argparse.ArgumentParser(
-            prog="practica4", description="Practica 3"
-        )
+        parser = argparse.ArgumentParser(prog="practica4", description="Practica 3")
         parser.add_argument(
             "procesos",
             type=int,
@@ -58,10 +56,13 @@ class Main:
         grafica = Main.generar_grafica(grado, env)
 
         # Imprimir la red/gráfica
-        print(f"Se ha generado la siguiente red con {len(grafica)} proceso(s):")
+        print(
+            f"Se ha generado la siguiente red en forma de anillo con {len(grafica)} proceso(s):"
+        )
         for p in grafica:
-            print(f"{grafica[p]}: {grafica[p].vecinos}")
-        rondas_esperadas = math.ceil(grado * math.log(grado)) + 1
+            print(
+                f"{grafica[p]}: {grafica[p].vecino_izquierdo}, {grafica[p].vecino_derecho}"
+            )
 
 
 if __name__ == "__main__":
