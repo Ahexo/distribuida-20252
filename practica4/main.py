@@ -49,20 +49,21 @@ class Main:
 
         args = parser.parse_args()
         if args.procesos < 3:
-            print("Error: The number of processes must be at least 3.")
+            print("Error: Esta topología requiere de al menos 3 procesos.")
             return
         env = simpy.Environment()
         grado = args.procesos
         grafica = Main.generar_grafica(grado, env)
 
         # Imprimir la red/gráfica
-        print(
-            f"Se ha generado la siguiente red en forma de anillo con {len(grafica)} proceso(s):"
-        )
-        for p in grafica:
-            print(
-                f"{grafica[p]}: {grafica[p].vecino_izquierdo}, {grafica[p].vecino_derecho}"
-            )
+        print(f"Se ha generado una red en forma de anillo con procesos del 1 al {grado}")
+
+        for proceso in grafica:
+            grafica[proceso].iterar()
+        env.run()
+        
+        resultados = {proceso: proceso.electo for pid, proceso in grafica.items()}
+        print(f"Resultados: {resultados}")
 
 
 if __name__ == "__main__":

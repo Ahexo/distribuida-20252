@@ -11,7 +11,12 @@ class Proceso:
         self.vecino_izquierdo = None
         self.vecino_derecho = None
         self.continuar = True
-        self.cola_mensajes = deque()
+        self.cola_mensajes_entrantes = deque()
+        self.cola_mensajes_salientes = deque()
+        self.mensajes_en_espera = deque()
+        self.status = "ASLEEP"
+        self.electo = "INDECISO"
+        self.minimo = pid
         env.process(self.iterar())
 
     def __repr__(self):
@@ -25,26 +30,6 @@ class Proceso:
             return self.pid == other.pid
         return NotImplemented
 
-    def __lt__(self, other):
-        if isinstance(other, Proceso):
-            return self.pid < other.pid
-        return NotImplemented
-
-    def __le__(self, other):
-        if isinstance(other, Proceso):
-            return self.pid <= other.pid
-        return NotImplemented
-
-    def __gt__(self, other):
-        if isinstance(other, Proceso):
-            return self.pid > other.pid
-        return NotImplemented
-
-    def __ge__(self, other):
-        if isinstance(other, Proceso):
-            return self.pid >= other.pid
-        return NotImplemented
-
     """
     1. Leer los mensajes que hayan llegado en la ronda pasada, solo uno
     por vecino.
@@ -56,69 +41,66 @@ class Proceso:
 
     def iterar(self):
         while self.continuar:
-            # Leer los mensajes (uno por cada vecino)
-            mensajes_por_vecino = {}
-            for i in range(0, len(self.cola_mensajes)):
-                mensaje = self.cola_mensajes.popleft()
-                metodo, args, remitente, tiempo = mensaje
-                if (remitente not in mensajes_por_vecino) and (tiempo != self.env.now):
-                    mensajes_por_vecino[remitente] = (metodo, args, tiempo)
+            # Vaciamos en R los mensajes que vamos a procesar en esta ronda
+            R = deque()
+            for i in range(0, len(self.cola_mensajes_entrantes)):
+                mensaje = self.cola_mensajes_entrantes.popleft()
+                _, _, ronda_de_emision, _ = mensaje
+                if ronda_de_emision != self.env.now:
+                    R.append(mensaje)
+            # Si el algoritmo aún no inicia, comenzamos a candidatearnos para lider
+            if self.status == "ASLEEP":
+                if len(R) == 0:
+                    self.status = "PARTICIPATING"
+                    self.minimo = self.pid
+                    self.log(f"Estatus: {self.status} en la fase 1")
+                    self.cola_mensajes_salientes.append((self.pid, 1, self.env.now))
                 else:
-                    self.cola_mensajes.append(mensaje)
-
-            # Procesar los mensajes recibidos
-            for remitente, (metodo, args, tiempo) in mensajes_por_vecino.items():
-                self.procesar_mensaje(metodo, args, remitente, tiempo)
+                    self.status = "RELAY"
+                    self.minimo = -1
+            # Por defecto, si hay mensajes en R, los procesamos todos
+            for i in range(0, len(R)):
+                mensaje = R.popleft()
+                origen, fase, ronda_de_emision, remitente = mensaje
+                self.procesar_mensaje(origen, fase, ronda_de_emision)
+            # Revisamos la lista de mensajes en espera
+            for origen, fase, ronda_de_emision in self.mensajes_en_espera:
+                delta = 2**(origen)-1
+                self.log(f"El mensaje se recibió en la fase 2 ({ronda_de_emision}) hace {delta} rondas.")
+                if ronda_de_emision >= delta:
+                    self.log(f"Recirculando mensaje")
+                    self.cola_mensajes_salientes.append((origen, fase, ronda_de_emision))
+            # Enviamos o recirculamos los mensajes que hagan falta
+            for origen, fase, ronda_de_emision in self.cola_mensajes_salientes:
+                self.log(f"Enviando <{origen},{fase},{ronda_de_emision}> a {self.vecino_izquierdo}")
+                self.vecino_izquierdo.msg(origen, fase, ronda_de_emision, self)
 
             yield self.env.timeout(1)  # Esperar a la siguiente ronda
 
-    """
-    Agrega un mensaje a la cola de mensajes del proceso.
-    Los mensajes se deberán de mandar en una tupla o un diccionario.
+    def procesar_mensaje(self, origen: int, fase: int, ronda_de_emision: int):
+        # Si el mensaje fué recibido
+        if origen > self.minimo:
+            return
+        elif origen < self.minimo:
+            self.electo = "NO LIDER"
+            self.minimo = origen
+            if self.status == "RELAY" and fase == 1:
+                self.cola_mensajes_salientes.append((origen, fase, ronda_de_emision, self))
+            else:
+                self.mensajes_en_espera.append((origen, 2, self.env.now))
+        elif origen == self.pid:
+            self.electo = "LIDER"
+        self.log(f"Mensaje con origen en {origen} en la fase {fase} recibido. Nuevo estado: {self.electo}")
+        self.continuar = False
 
-    Parameters
-    ----------
-    metodo:
-        Nombre de la función/método que se desea invocar.
-    args:
-        Tupla/diccionario de argumentos.
-    remitente:
-        Proceso que envia el mensaje.
-    """
-
-    def msg(self, metodo: str, args, remitente):
+    def msg(self, origen: int, fase: int, ronda_de_emision: int, remitente):
         if remitente is self.vecino_izquierdo or remitente is self.vecino_derecho:
-            mensaje = (metodo, args, remitente, self.env.now)
-            self.cola_mensajes.append(mensaje)
+            mensaje = (origen, fase, ronda_de_emision, remitente)
+            self.cola_mensajes_entrantes.append(mensaje)
             return True
         else:
             self.log(f"{remitente} ha intentado mandar un mensaje, pero no es vecino.")
             return False
-
-    """
-    Procesa un mensaje llamando al método correspondiente si existe.
-    """
-
-    def procesar_mensaje(self, metodo, args, remitente, tiempo):
-        if hasattr(self, metodo):  # Verifica si el proceso tiene el método
-            metodo_a_llamar = getattr(self, metodo)
-            if isinstance(args, dict):
-                # Si los argumentos son un diccionario, usar **args
-                args["remitente"] = remitente
-                metodo_a_llamar(**args)
-            elif isinstance(args, tuple):
-                # Si son una tupla, pasarlos como argumentos
-                metodo_a_llamar(*args, remitente)
-            elif args is None:
-                # Si no tiene argumentos, llamar al método tal cual
-                metodo_a_llamar()
-            else:
-                # Si es un único argumento, pasarlo tal cual
-                metodo_a_llamar(args)
-        else:
-            self.log(
-                f"Recibiendo un mensaje para ejecutar {metodo}, pero no existe tal método."
-            )
 
     """
     Imprime un mensaje en pantalla con el prefijo de la ronda actual.
