@@ -61,7 +61,6 @@ class Main:
         for proceso in grafica:
             grafica[proceso].iterar()
         env.run()
-        
         resultados = {proceso: proceso.electo for pid, proceso in grafica.items()}
         print(f"Resultados: {resultados}")
 
